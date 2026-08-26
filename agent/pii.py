@@ -30,10 +30,54 @@ set ở tests/vn_pii_testset.jsonl):
 """
 from __future__ import annotations
 
+import re
+
 
 def detect(text: str) -> list[dict]:
-    raise NotImplementedError("BƯỚC 3a: implement PII detection")
+    """Phát hiện các thực thể PII trong chuỗi text.
+    
+    Hỗ trợ: EMAIL, VN_BANK_ACCOUNT, VN_CCCD, VN_PHONE.
+    """
+    entities: list[dict] = []
+
+    # 1. EMAIL
+    for m in re.finditer(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", text):
+        entities.append({"type": "EMAIL", "start": m.start(), "end": m.end()})
+
+    # 2. VN_BANK_ACCOUNT (thường đi kèm tiền tố STK/số tài khoản/TK và có từ 8-19 số)
+    for m in re.finditer(
+        r"(?:STK|số tài khoản|so tai khoan|tài khoản|tai khoan|TK)\s*[:.]?\s*(\d{8,19})\b",
+        text,
+        re.IGNORECASE,
+    ):
+        entities.append({"type": "VN_BANK_ACCOUNT", "start": m.start(1), "end": m.end(1)})
+
+    # 3. VN_CCCD (12 chữ số liên tiếp)
+    for m in re.finditer(r"\b\d{12}\b", text):
+        start, end = m.start(), m.end()
+        # Tránh trùng lặp với entity đã phát hiện (ví dụ số tài khoản)
+        if not any(e["start"] <= start < e["end"] or e["start"] < end <= e["end"] for e in entities):
+            entities.append({"type": "VN_CCCD", "start": start, "end": end})
+
+    # 4. VN_PHONE (10 chữ số bắt đầu bằng số 0)
+    for m in re.finditer(r"\b0\d{9}\b", text):
+        start, end = m.start(), m.end()
+        if not any(e["start"] <= start < e["end"] or e["start"] < end <= e["end"] for e in entities):
+            entities.append({"type": "VN_PHONE", "start": start, "end": end})
+
+    entities.sort(key=lambda x: x["start"])
+    return entities
 
 
 def redact(text: str) -> str:
-    raise NotImplementedError("BƯỚC 3a: implement PII redaction")
+    """Thay thế các entity PII phát hiện được bằng [REDACTED_<TYPE>]."""
+    entities = detect(text)
+    # Thay thế từ cuối văn bản lên đầu để không làm lệch offset ký tự
+    sorted_entities = sorted(entities, key=lambda x: x["start"], reverse=True)
+    result = text
+    for entity in sorted_entities:
+        start = entity["start"]
+        end = entity["end"]
+        etype = entity["type"]
+        result = result[:start] + f"[REDACTED_{etype}]" + result[end:]
+    return result
