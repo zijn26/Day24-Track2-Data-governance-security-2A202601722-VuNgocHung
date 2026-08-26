@@ -37,4 +37,42 @@ class PolicyContext:
 
 
 def check(context: PolicyContext) -> tuple[bool, str]:
-    raise NotImplementedError("BƯỚC 3b: implement policy check")
+    """Policy Enforcement Point kiểm tra quyền thực thi dựa trên context 5 chiều."""
+    classification = context.data_classification.lower()
+
+    # Rule 1: Chặn truy cập dữ liệu restricted khi môi trường có bật network egress
+    if classification == "restricted" and context.egress_enabled:
+        return (
+            False,
+            f"Denied: data_classification='restricted' is forbidden when egress_enabled=True "
+            f"for agent '{context.agent_owner}' (purpose: '{context.request_purpose}')",
+        )
+
+    # Rule 2: Cho phép dữ liệu restricted nếu không có network egress (môi trường cô lập)
+    if classification == "restricted" and not context.egress_enabled:
+        return (
+            True,
+            f"Allowed: restricted data access permitted in isolated environment (egress_enabled=False) "
+            f"for agent '{context.agent_owner}'",
+        )
+
+    # Rule 3: Dữ liệu internal
+    if classification == "internal":
+        return (
+            True,
+            f"Allowed: internal data access permitted for agent '{context.agent_owner}' "
+            f"(purpose: '{context.request_purpose}', egress={context.egress_enabled})",
+        )
+
+    # Rule 4: Dữ liệu public
+    if classification == "public":
+        return (
+            True,
+            f"Allowed: public data access permitted for agent '{context.agent_owner}'",
+        )
+
+    # Default fallback
+    return (
+        True,
+        f"Allowed: standard access for classification '{context.data_classification}'",
+    )
