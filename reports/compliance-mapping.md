@@ -1,12 +1,11 @@
-# Compliance mapping
+# Compliance Mapping — Lab 24 Data Governance & Security
 
-Điền evidence là **đường dẫn file/dòng thật** trong repo của bạn — không
-phải mô tả chung. Xem `Guide.md` Bước 4 và `Rubric.md`.
+Bảng đối chiếu tuân thủ giữa các quy định pháp lý, tiêu chuẩn bảo mật AI và các biện pháp kiểm soát kỹ thuật (Controls & Evidences) được triển khai trong hệ thống.
 
 | Requirement | Control | Evidence |
 |---|---|---|
-| Luật 91/2025 — quyền yêu cầu xoá | | |
-| NĐ 356/2025 — hồ sơ xuyên biên giới 60 ngày | | |
-| ASI03 — privilege abuse | | |
-| ASI01 — goal hijack | | |
-| ISO 42001 Clause 5-6 | | |
+| Luật 91/2025 — quyền yêu cầu xoá | Chưa implement trong baseline core (cần triển khai delete cascade đồng bộ giữa `data/customers.json` và lưu vết ẩn danh trong ledger, xem stretch goal #3 & #4) | — |
+| NĐ 356/2025 — hồ sơ xuyên biên giới 60 ngày | Lập danh mục kiểm kê luồng dữ liệu (Data-flow Inventory) cho các lệnh gọi LLM API / Cloud provider và cơ chế kiểm soát egress | [reports/dpia-lite.md](file:///d:/Day24-Track2-Data-governance-security-2A202601722-VuNgocHung/reports/dpia-lite.md#L1-L45) §2, §3 |
+| ASI03 — Privilege Abuse | Kiểm soát phân quyền per-agent/per-run identity (`agent_owner`, `run_id`, `delegation_depth`), giới hạn phạm vi truy cập theo ngữ cảnh dữ liệu và gắn timestamp | [agent/policy.py:30-68](file:///d:/Day24-Track2-Data-governance-security-2A202601722-VuNgocHung/agent/policy.py#L30-L68), [agent/runner.py:56-115](file:///d:/Day24-Track2-Data-governance-security-2A202601722-VuNgocHung/agent/runner.py#L56-L115), [reports/ledger.jsonl:1-23](file:///d:/Day24-Track2-Data-governance-security-2A202601722-VuNgocHung/reports/ledger.jsonl#L1-L23) |
+| ASI01 — Goal Hijack | Kiến trúc **Trifecta Split**: tách biệt Run A (đọc untrusted content, không có egress/private data) và Run B (chỉ nhận typed ticket ID, không nhận free text từ attacker, kiểm soát policy deny khi có yêu cầu egress) | [agent/runner.py:53-125](file:///d:/Day24-Track2-Data-governance-security-2A202601722-VuNgocHung/agent/runner.py#L53-L125), [reports/attack-after.log](file:///d:/Day24-Track2-Data-governance-security-2A202601722-VuNgocHung/reports/attack-after.log), [reports/ledger.jsonl:23](file:///d:/Day24-Track2-Data-governance-security-2A202601722-VuNgocHung/reports/ledger.jsonl#L23) |
+| ISO 42001 Clause 5-6 | Policy-as-code: chính sách quản trị AI được định nghĩa rõ ràng, kiểm thử tự động và quản lý phiên bản nghiêm ngặt qua Git | `git log -p agent/policy.py`, [agent/policy.py:39-68](file:///d:/Day24-Track2-Data-governance-security-2A202601722-VuNgocHung/agent/policy.py#L39-L68), [tests/test_policy.py:1-42](file:///d:/Day24-Track2-Data-governance-security-2A202601722-VuNgocHung/tests/test_policy.py#L1-L42) |
